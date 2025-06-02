@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Callback Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f8f8f8;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 2rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    input[type="text"],
+    input[type="datetime-local"] {
+      width: 100%;
+      padding: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    button:hover {
+      background: #005fa3;
+    }
+
+    .non-editable {
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .urgent {
+      color: red;
+      font-weight: bold;
+    }
+
+    .grabbed {
+      font-style: italic;
+      color: #888;
+    }
+
+    .filter-bar {
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .filter-bar select,
+    .filter-bar input[type="checkbox"] {
+      margin-left: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Callback Entries</h1>
+
+  <div style="text-align: center; margin-bottom: 1rem;">
+    <label for="user-name">Your Name:</label>
+    <input type="text" id="user-name" placeholder="Enter your name" style="padding: 0.4rem; width: 200px;" />
+    <button id="set-name-btn">Set Name</button>
+    <button id="clear-name-btn" style="margin-left: 0.5rem;">Clear Name</button>
+    <span id="current-name" style="margin-left: 1rem; font-weight: bold;"></span>
+  </div>
+
+  <div class="filter-bar">
+    <label>
+      <input type="checkbox" id="unresolved-only" />
+      Show Only Unresolved
+    </label>
+
+    <select id="sort-order">
+      <option value="">-- Sort --</option>
+      <option value="urgent">Urgent First</option>
+      <option value="recent">Most Recent First</option>
+    </select>
+  </div>
+
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Phone</th>
+        <th>Date</th>
+        <th>Time Zone</th>
+        <th>Disposition</th>
+        <th>Urgent</th>
+        <th>Called Time</th>
+        <th>Open Notes</th>
+        <th>Resolved</th>
+        <th>Callback Time</th>
+        <th>CB Notes</th>
+        <th>Grabbed By</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabaseClient.js"></script>
+  <script>
+    const tableBody = document.querySelector("#data-table tbody");
+    const unresolvedCheckbox = document.getElementById('unresolved-only');
+    const sortOrderSelect = document.getElementById('sort-order');
+
+    const userNameInput = document.getElementById("user-name");
+    const setNameBtn = document.getElementById("set-name-btn");
+    const clearNameBtn = document.getElementById("clear-name-btn");
+    const currentNameDisplay = document.getElementById("current-name");
+
+    let cachedData = [];
+    let userName = localStorage.getItem("callbackUserName") || "";
+
+    if (userName) {
+      currentNameDisplay.textContent = `Logged in as: ${userName}`;
+      userNameInput.value = userName;
+    }
+
+    setNameBtn.addEventListener("click", () => {
+      const name = userNameInput.value.trim();
+      if (name) {
+        userName = name;
+        localStorage.setItem("callbackUserName", userName);
+        currentNameDisplay.textContent = `Logged in as: ${userName}`;
+      } else {
+        alert("Please enter a valid name.");
+      }
+    });
+
+    clearNameBtn.addEventListener("click", () => {
+      localStorage.removeItem("callbackUserName");
+      userName = "";
+      userNameInput.value = "";
+      currentNameDisplay.textContent = "";
+    });
+
+    function formatDateTime(timestamp) {
+      if (!timestamp) return "";
+      const date = new Date(timestamp);
+      const offset = date.getTimezoneOffset();
+      return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+    }
+
+    async function loadData() {
+      if (cachedData.length === 0) {
+        const { data, error } = await supabase.from("intake_surge_table").select("*");
+        if (error) {
+          alert("Load Error: " + error.message);
+          return;
+        }
+        cachedData = data;
+      }
+
+      let data = [...cachedData];
+      const showUnresolvedOnly = unresolvedCheckbox.checked;
+      const sortOrder = sortOrderSelect.value;
+
+      if (showUnresolvedOnly) {
+        data = data.filter(row => !row.Resolved);
+      }
+
+      if (sortOrder === "urgent") {
+        data.sort((a, b) => (b.Urgent === true) - (a.Urgent === true));
+      } else if (sortOrder === "recent") {
+        data.sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
+      }
+
+      tableBody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        const isGrabbed = !!row["Grabbed By"];
+
+        tr.innerHTML = `
+          <td class="non-editable">${row["Customer Name"] || ""}</td>
+          <td class="non-editable">${row["Phone Number"] || ""}</td>
+          <td class="non-editable">${row.Date ? new Date(row.Date).toLocaleString() : ""}</td>
+          <td class="non-editable">${row["Time Zone"] || ""}</td>
+          <td class="non-editable">${row["Disposition"] || ""}</td>
+          <td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
+          <td class="non-editable">${row["Called Time"] || ""}</td>
+          <td class="non-editable">${row["Open Notes"] || ""}</td>
+          <td><input type="checkbox" ${row.Resolved ? "checked" : ""} ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+	  <td><input type="datetime-local" class="cb-time" value="${formatDateTime(row["Call Back Timestamp"])}" ${row["Grabbed By"] !== 	  userName ? "disabled" : ""}></td>
+	  <td><input type="text" value="${row["CB Notes"] || ""}" ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+
+          <td class="non-editable ${isGrabbed ? 'grabbed' : ''}">${row["Grabbed By"] || ""}</td>
+          <td>
+            ${isGrabbed ? "" : '<button class="grab-btn">Grab</button>'}
+            <button class="save-btn">Save</button>
+          </td>
+        `;
+
+        const grabBtn = tr.querySelector(".grab-btn");
+        if (grabBtn) {
+          grabBtn.addEventListener("click", async () => {
+            if (!userName) {
+              alert("Please set your name before grabbing.");
+              return;
+            }
+
+            const { error: grabError } = await supabase
+ 		 .from("intake_surge_table")
+ 		 .update({ "Grabbed By": userName })
+ 		 .eq("id", row.id);
+
+
+            if (grabError) {
+              alert("Failed to grab: " + grabError.message);
+            } else {
+              cachedData = [];
+              loadData();
+            }
+          });
+        }
+
+        const saveBtn = tr.querySelector(".save-btn");
+        const resolvedCheckbox = tr.querySelector("input[type='checkbox']");
+        const cbTimeInput = tr.querySelector(".cb-time");
+        const cbNotesInput = tr.querySelector(".cb-notes");
+
+        saveBtn.addEventListener("click", async () => {
+          const updates = {
+            Resolved: resolvedCheckbox.checked,
+            "Call Back Timestamp": cbTimeInput.value,
+            "CB Notes": cbNotesInput.value,
+          };
+
+          const { error: updateError } = await supabase
+            .from("intake_surge_table")
+            .update(updates)
+            .eq("id", row.id);
+
+          if (updateError) {
+            alert("Update failed: " + updateError.message);
+          } else {
+            alert("Saved!");
+            cachedData = [];
+            loadData();
+          }
+        });
+
+        tableBody.appendChild(tr);
+      });
+    }
+
+    unresolvedCheckbox.addEventListener('change', loadData);
+    sortOrderSelect.addEventListener('change', loadData);
+
+    loadData();
+
+    supabase
+      .channel('realtime:callback-table')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'intake_surge_table'
+        },
+        () => {
+          cachedData = [];
+          loadData();
+        }
+      )
+      .subscribe();
+  </script>
+</body>
+</html>
