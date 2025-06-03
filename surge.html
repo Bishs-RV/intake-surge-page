@@ -142,7 +142,6 @@ data.Date = mdtDate.toISOString(); // full timestamp in ISO format
       if (error) {
         alert('Error: ' + error.message);
       } else {
-        alert('Success!');
         form.reset();
         dateField.value = getCurrentDateInMDT(); // Reset with correct MDT date
       }
