@@ -59,6 +59,11 @@
       color: #333;
       font-size: 0.95rem;
     }
+	
+	.resolved-row {
+	  background-color: #e0e0e0;
+	  transition: background-color 0.3s ease-in-out;
+	}
 
     .urgent {
       color: red;
@@ -203,28 +208,32 @@
       tableBody.innerHTML = "";
 
       data.forEach(row => {
-        const tr = document.createElement("tr");
-        const isGrabbed = !!row["Grabbed By"];
+		  const tr = document.createElement("tr");
+		  const isGrabbed = !!row["Grabbed By"];
 
-        tr.innerHTML = `
-          <td class="non-editable">${row["Customer Name"] || ""}</td>
-          <td class="non-editable">${row["Phone Number"] || ""}</td>
-          <td class="non-editable">${row.Date ? new Date(row.Date).toLocaleString() : ""}</td>
-          <td class="non-editable">${row["Time Zone"] || ""}</td>
-          <td class="non-editable">${row["Disposition"] || ""}</td>
-          <td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
-          <td class="non-editable">${row["Called Time"] || ""}</td>
-          <td class="non-editable">${row["Open Notes"] || ""}</td>
-          <td><input type="checkbox" ${row.Resolved ? "checked" : ""} ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
-	  <td><input type="datetime-local" class="cb-time" value="${formatDateTime(row["Call Back Timestamp"])}" ${row["Grabbed By"] !== 	  userName ? "disabled" : ""}></td>
-	  <td><input type="text" value="${row["CB Notes"] || ""}" ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+		  if (row.Resolved) {
+			tr.classList.add("resolved-row");
+		  }
 
-          <td class="non-editable ${isGrabbed ? 'grabbed' : ''}">${row["Grabbed By"] || ""}</td>
-          <td>
-            ${isGrabbed ? "" : '<button class="grab-btn">Grab</button>'}
-            <button class="save-btn">Save</button>
-          </td>
-        `;
+		  tr.innerHTML = `
+			<td class="non-editable">${row["Customer Name"] || ""}</td>
+			<td class="non-editable">${row["Phone Number"] || ""}</td>
+			<td class="non-editable">${row.Date ? new Date(row.Date).toLocaleString() : ""}</td>
+			<td class="non-editable">${row["Time Zone"] || ""}</td>
+			<td class="non-editable">${row["Disposition"] || ""}</td>
+			<td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
+			<td class="non-editable">${row["Called Time"] || ""}</td>
+			<td class="non-editable">${row["Open Notes"] || ""}</td>
+			<td><input type="checkbox" ${row.Resolved ? "checked" : ""} ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+			<td><input type="datetime-local" class="cb-time" value="${formatDateTime(row["Call Back Timestamp"])}" ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+			<td><input type="text" class="cb-notes" value="${row["CB Notes"] || ""}" ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
+			<td class="non-editable ${isGrabbed ? 'grabbed' : ''}">${row["Grabbed By"] || ""}</td>
+			<td>
+			  ${isGrabbed ? "" : '<button class="grab-btn">Grab</button>'}
+			  <button class="save-btn">Save</button>
+			</td>
+		  `;
+
 
         const grabBtn = tr.querySelector(".grab-btn");
         if (grabBtn) {
@@ -249,7 +258,34 @@
           });
         }
 
-        const saveBtn = tr.querySelector(".save-btn");
+		const saveBtn = tr.querySelector(".save-btn");
+
+		// Disable save button for resolved rows
+		if (row.Resolved) {
+		  saveBtn.disabled = true;
+		  saveBtn.style.opacity = 0.5;
+		  saveBtn.style.cursor = "not-allowed";
+		} else {
+		  saveBtn.addEventListener("click", async () => {
+			const updates = {
+			  Resolved: resolvedCheckbox.checked,
+			  "Call Back Timestamp": cbTimeInput.value,
+			  "CB Notes": cbNotesInput.value,
+			};
+
+			const { error: updateError } = await supabase
+			  .from("intake_surge_table")
+			  .update(updates)
+			  .eq("id", row.id);
+
+			if (updateError) {
+			  alert("Update failed: " + updateError.message);
+			} else {
+			  cachedData = [];
+			  loadData();
+			}
+		  });
+		}
         const resolvedCheckbox = tr.querySelector("input[type='checkbox']");
         const cbTimeInput = tr.querySelector(".cb-time");
         const cbNotesInput = tr.querySelector(".cb-notes");
@@ -269,7 +305,6 @@
           if (updateError) {
             alert("Update failed: " + updateError.message);
           } else {
-            alert("Saved!");
             cachedData = [];
             loadData();
           }
