@@ -233,10 +233,11 @@
 
       // Always prioritize grabbed rows
 		data.sort((a, b) => {
-		  const aGrabbed = !!a["Grabbed By"];
-		  const bGrabbed = !!b["Grabbed By"];
-		  if (aGrabbed !== bGrabbed) {
-			return bGrabbed - aGrabbed; // Grabbed entries come first
+		  const aIsMine = a["Grabbed By"] === userName;
+		  const bIsMine = b["Grabbed By"] === userName;
+
+		  if (aIsMine !== bIsMine) {
+			return bIsMine - aIsMine; // Yours come first
 		  }
 
 		  // Then apply selected sort order
@@ -252,11 +253,34 @@
 		});
 
 
+		const unsavedChanges = {};
+		tableBody.querySelectorAll("tr").forEach(tr => {
+		  const rowId = tr.dataset.id;
+		  if (!rowId) return;
+
+		  const cbTime = tr.querySelector(".cb-time")?.value;
+		  const cbNotes = tr.querySelector(".cb-notes")?.value;
+		  const resolved = tr.querySelector("input[type='checkbox']")?.checked;
+
+		  unsavedChanges[rowId] = {
+			cbTime,
+			cbNotes,
+			resolved
+		  };
+		});
+		
+	let activeElement = document.activeElement;
+	let selectionStart = activeElement?.selectionStart || 0;
+	let selectionEnd = activeElement?.selectionEnd || 0;
+	let activeRowId = activeElement?.closest("tr")?.dataset?.id;
+	let activeFieldClass = activeElement?.classList?.[0];
 
       tableBody.innerHTML = "";
 
+
       data.forEach(row => {
 		  const tr = document.createElement("tr");
+		  tr.dataset.id = row.id;
 		  const isGrabbed = !!row["Grabbed By"];
 		  const date = row.Date ? new Date(row.Date).toISOString().split('T')[0] : null;
 		  const isRepeatCaller = phoneDateMap[`${row["Phone Number"]}|${date}`] > 1;
@@ -339,38 +363,39 @@
 			}
 		  });
 		}
+		
+		
         const resolvedCheckbox = tr.querySelector("input[type='checkbox']");
         const cbTimeInput = tr.querySelector(".cb-time");
         const cbNotesInput = tr.querySelector(".cb-notes");
-
-        saveBtn.addEventListener("click", async () => {
-          const updates = {
-            Resolved: resolvedCheckbox.checked,
-            "Call Back Timestamp": cbTimeInput.value,
-            "CB Notes": cbNotesInput.value,
-          };
-
-          const { error: updateError } = await supabase
-            .from("intake_surge_table")
-            .update(updates)
-            .eq("id", row.id);
-
-          if (updateError) {
-            alert("Update failed: " + updateError.message);
-          } else {
-            cachedData = [];
-            loadData();
-          }
-        });
+		
+		const unsaved = unsavedChanges[row.id];
+		if (unsaved) {
+		  cbTimeInput.value = unsaved.cbTime || "";
+		  cbNotesInput.value = unsaved.cbNotes || "";
+		  resolvedCheckbox.checked = unsaved.resolved;
+		}
 
         tableBody.appendChild(tr);
-      });
+      });		
+	if (activeRowId && activeFieldClass) {
+	  const trToRestore = tableBody.querySelector(`tr[data-id="${activeRowId}"]`);
+	  const inputToRestore = trToRestore?.querySelector(`.${activeFieldClass}`);
+	  if (inputToRestore) {
+		inputToRestore.focus();
+		inputToRestore.setSelectionRange(selectionStart, selectionEnd);
+	  }
+	}
+
     }
 
     unresolvedCheckbox.addEventListener('change', loadData);
 	document.getElementById("spanish-only").addEventListener('change', loadData);
     sortOrderSelect.addEventListener('change', loadData);
 	document.getElementById("mine-only").addEventListener('change', loadData);
+
+
+
 
     loadData();
 
