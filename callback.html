@@ -79,7 +79,10 @@
       margin-top: 1rem;
       text-align: center;
     }
-
+	.repeat-caller {
+	  background-color: #ffe6e6;
+	  font-weight: bold;
+	}
     .filter-bar select,
     .filter-bar input[type="checkbox"] {
       margin-left: 1rem;
@@ -216,7 +219,17 @@
 	  data = data.filter(row => row["Grabbed By"] === userName);
 	  }
 
+		// Count phone numbers
+		const phoneDateMap = {}; // Format: { phoneNumber|YYYY-MM-DD: count }
 
+		data.forEach(row => {
+		  const phone = row["Phone Number"];
+		  const date = row.Date ? new Date(row.Date).toISOString().split('T')[0] : null; // "YYYY-MM-DD"
+		  if (phone && date) {
+			const key = `${phone}|${date}`;
+			phoneDateMap[key] = (phoneDateMap[key] || 0) + 1;
+		  }
+		});
 
       // Always prioritize grabbed rows
 		data.sort((a, b) => {
@@ -245,6 +258,8 @@
       data.forEach(row => {
 		  const tr = document.createElement("tr");
 		  const isGrabbed = !!row["Grabbed By"];
+		  const date = row.Date ? new Date(row.Date).toISOString().split('T')[0] : null;
+		  const isRepeatCaller = phoneDateMap[`${row["Phone Number"]}|${date}`] > 1;
 
 		  if (row.Resolved) {
 			tr.classList.add("resolved-row");
@@ -252,7 +267,9 @@
 
 		  tr.innerHTML = `
 			<td class="non-editable">${row["Customer Name"] || ""}</td>
-			<td class="non-editable">${row["Phone Number"] || ""}</td>
+			<td class="non-editable ${isRepeatCaller ? 'repeat-caller' : ''}">
+			  ${row["Phone Number"] || ""}
+			</td>
 			<td class="non-editable">${row.Date ? new Date(row.Date).toLocaleString() : ""}</td>
 			<td class="non-editable">${row["Time Zone"] || ""}</td>
 			<td class="non-editable">${row["Disposition"] || ""}</td>
