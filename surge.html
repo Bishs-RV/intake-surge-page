@@ -5,16 +5,19 @@
   <title>Surge Intake</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      max-width: 600px;
-      margin: auto;
-      background: #f4f4f4;
-    }
+	  font-family: Arial, sans-serif;
+	  padding: 2rem;
+	  margin: auto;
+	  background: #f4f4f4;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	}
 
-    h1 {
-      text-align: center;
-    }
+	h1 {
+	  text-align: center;
+	  width: 100%;
+	}
 
     form {
       background: white;
@@ -57,10 +60,54 @@
     button:hover {
       background: #005fa3;
     }
+	.form-wrapper {
+	  display: flex;
+	  justify-content: center;
+	  align-items: stretch;
+	  gap: 2rem;
+	  margin-top: 2rem;
+	  width: 100%;
+	  max-width: 1000px; /* You can adjust this */
+	}
+
+	form {
+	  flex: 1;
+	  background: white;
+	  padding: 2rem;
+	  border-radius: 8px;
+	  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+	  min-width: 400px; /* Keeps form from shrinking too much */
+	}
+
+	.script-image {
+	  flex-shrink: 0;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  justify-content: flex-start;
+	}
+
+	.script-image img {
+	  height: 100%;
+	  width: auto;
+	  object-fit: contain;
+	  border-radius: 8px;
+	  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+	}
+
+
   </style>
 </head>
 <body>
-  <h1>New Surge Entry</h1>
+  <h1>RVFix Surge Entry</h1>
+  
+    <div class="form-wrapper">
+    <div class="script-image">
+	  <div style="font-weight: bold;">Script</div>
+	  <img src="script.png" alt="Script" />
+	</div>
+
+	
   <form id="surge-form">
     <label>Customer Name:
       <input type="text" name="Customer Name" placeholder="Customer Name" required />
@@ -99,6 +146,11 @@
         <option value="Cancel Appt">Cancel Appt</option>
       </select>
     </label>
+	
+	<label>
+	  <input type="checkbox" name="Spanish Speaker" />
+	  Spanish Speaker
+	</label>
 
     <label>
       <input type="checkbox" name="Urgent" />
@@ -128,8 +180,13 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const data = Object.fromEntries(new FormData(form));
-data.Urgent = form['Urgent'].checked;
+      const data = {
+		  ...Object.fromEntries(new FormData(form)),
+		  Urgent: form['Urgent'].checked,
+		  "Spanish Speaker": form["Spanish Speaker"].checked
+		};
+
+
 
 // Replace the existing Date field with a full ISO timestamp in MDT
 const now = new Date();
@@ -143,7 +200,6 @@ data.Date = mdtDate.toISOString(); // full timestamp in ISO format
         alert('Error: ' + error.message);
       } else {
         form.reset();
-        dateField.value = getCurrentDateInMDT(); // Reset with correct MDT date
       }
     });
   </script>

@@ -102,13 +102,24 @@
       <input type="checkbox" id="unresolved-only" />
       Show Only Unresolved
     </label>
+	
+	<label>
+	  <input type="checkbox" id="spanish-only" />
+	  Show Only Spanish Speakers
+	</label>
+	
+	<label>
+	  <input type="checkbox" id="mine-only" />
+	  Grabbed By Me
+	</label>
+
 
     <select id="sort-order">
-  <option value="">-- Sort --</option>
-  <option value="urgent">Urgent First</option>
-  <option value="recent">Most Recent First</option>
-  <option value="oldest">Oldest First</option>
-</select>
+	  <option value="">-- Sort --</option>
+	  <option value="urgent">Urgent First</option>
+	  <option value="recent">Most Recent First</option>
+	  <option value="oldest">Oldest First</option>
+	</select>
 
   </div>
 
@@ -121,6 +132,7 @@
         <th>Time Zone</th>
         <th>Disposition</th>
         <th>Urgent</th>
+		<th>Spanish Speaker</th>
         <th>Called Time</th>
         <th>Open Notes</th>
         <th>Resolved</th>
@@ -190,19 +202,42 @@
 
       let data = [...cachedData];
       const showUnresolvedOnly = unresolvedCheckbox.checked;
+	  const showSpanishOnly = document.getElementById("spanish-only").checked;
+	  const showMineOnly = document.getElementById("mine-only").checked;
       const sortOrder = sortOrderSelect.value;
 
       if (showUnresolvedOnly) {
         data = data.filter(row => !row.Resolved);
       }
+	  if (showSpanishOnly) {
+	  data = data.filter(row => row["Spanish Speaker"]);
+	  }
+	  if (showMineOnly && userName) {
+	  data = data.filter(row => row["Grabbed By"] === userName);
+	  }
 
-      if (sortOrder === "urgent") {
-  data.sort((a, b) => (b.Urgent === true) - (a.Urgent === true));
-} else if (sortOrder === "recent") {
-  data.sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
-} else if (sortOrder === "oldest") {
-  data.sort((a, b) => new Date(a.Date || 0) - new Date(b.Date || 0));
-}
+
+
+      // Always prioritize grabbed rows
+		data.sort((a, b) => {
+		  const aGrabbed = !!a["Grabbed By"];
+		  const bGrabbed = !!b["Grabbed By"];
+		  if (aGrabbed !== bGrabbed) {
+			return bGrabbed - aGrabbed; // Grabbed entries come first
+		  }
+
+		  // Then apply selected sort order
+		  if (sortOrder === "urgent") {
+			return (b.Urgent === true) - (a.Urgent === true);
+		  } else if (sortOrder === "recent") {
+			return new Date(b.Date || 0) - new Date(a.Date || 0);
+		  } else if (sortOrder === "oldest") {
+			return new Date(a.Date || 0) - new Date(b.Date || 0);
+		  }
+
+		  return 0; // No sort
+		});
+
 
 
       tableBody.innerHTML = "";
@@ -222,6 +257,7 @@
 			<td class="non-editable">${row["Time Zone"] || ""}</td>
 			<td class="non-editable">${row["Disposition"] || ""}</td>
 			<td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
+			<td class="non-editable">${row["Spanish Speaker"] ? "Yes" : "No"}</td>
 			<td class="non-editable">${row["Called Time"] || ""}</td>
 			<td class="non-editable">${row["Open Notes"] || ""}</td>
 			<td><input type="checkbox" ${row.Resolved ? "checked" : ""} ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
@@ -315,7 +351,9 @@
     }
 
     unresolvedCheckbox.addEventListener('change', loadData);
+	document.getElementById("spanish-only").addEventListener('change', loadData);
     sortOrderSelect.addEventListener('change', loadData);
+	document.getElementById("mine-only").addEventListener('change', loadData);
 
     loadData();
 
