@@ -87,6 +87,40 @@
     .filter-bar input[type="checkbox"] {
       margin-left: 1rem;
     }
+	.copy-box {
+	  position: fixed;
+	  bottom: 20px;
+	  right: 20px;
+	  background: #ffffff;
+	  border: 1px solid #ccc;
+	  padding: 0.75rem;
+	  width: 200px;
+	  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+	  border-radius: 6px;
+	  font-size: 0.85rem;
+	  z-index: 999;
+	  text-align: center;
+	}
+
+	.copy-box button {
+	  margin-top: 0.5rem;
+	  background: #0077cc;
+	  border: none;
+	  color: white;
+	  padding: 0.4rem 0.8rem;
+	  border-radius: 4px;
+	  cursor: pointer;
+	  font-size: 0.85rem;
+	  width: 100%;
+	  transition: background 0.2s ease;
+	}
+
+	.copy-box button:hover {
+	  background: #005fa3;
+	}
+
+	
+
   </style>
 </head>
 <body>
@@ -146,6 +180,13 @@
     </thead>
     <tbody></tbody>
   </table>
+  
+  <div class="copy-box">
+	  <strong>Voicemail Message</strong>
+	  <button id="copy-btn" onclick="copyText()">Copy</button>
+	</div>
+
+
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="supabaseClient.js"></script>
@@ -177,6 +218,21 @@
         alert("Please enter a valid name.");
       }
     });
+
+	function copyText() {
+	  const text = `Hi! This is RVFix with Bish’s RV. Just checking in to see if you got the help you needed. It’s been a busy week, but we’re here to help if you still need anything! Even if you have a simple question for an RV technician — just reply and we’ll reach out to you!`;
+	  const btn = document.getElementById("copy-btn");
+
+	  navigator.clipboard.writeText(text).then(() => {
+		btn.textContent = "Copied!";
+		setTimeout(() => {
+		  btn.textContent = "Copy";
+		}, 2000);
+	  }).catch(err => {
+		console.error("Clipboard copy failed:", err);
+	  });
+	}
+
 
     clearNameBtn.addEventListener("click", () => {
       localStorage.removeItem("callbackUserName");
