@@ -136,7 +136,6 @@
         <th>Disposition</th>
         <th>Urgent</th>
 		<th>Spanish Speaker</th>
-        <th>Called Time</th>
         <th>Open Notes</th>
         <th>Resolved</th>
         <th>Callback Time</th>
@@ -299,7 +298,6 @@
 			<td class="non-editable">${row["Disposition"] || ""}</td>
 			<td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
 			<td class="non-editable">${row["Spanish Speaker"] ? "Yes" : "No"}</td>
-			<td class="non-editable">${row["Called Time"] || ""}</td>
 			<td class="non-editable">${row["Open Notes"] || ""}</td>
 			<td><input type="checkbox" ${row.Resolved ? "checked" : ""} ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
 			<td><input type="datetime-local" class="cb-time" value="${formatDateTime(row["Call Back Timestamp"])}" ${row["Grabbed By"] !== userName ? "disabled" : ""}></td>
