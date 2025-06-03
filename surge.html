@@ -11,33 +11,39 @@
       margin: auto;
       background: #f4f4f4;
     }
+
     h1 {
       text-align: center;
     }
+
     form {
       background: white;
       padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
+
     label {
       display: block;
       margin-top: 1rem;
     }
+
     input[type="text"],
-input[type="date"],
-select,
-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  margin-top: 0.25rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
     textarea {
       resize: vertical;
       min-height: 80px;
     }
+
     button {
       margin-top: 1.5rem;
       padding: 0.75rem 1.5rem;
@@ -47,6 +53,7 @@ textarea {
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background: #005fa3;
     }
@@ -55,8 +62,6 @@ textarea {
 <body>
   <h1>New Surge Entry</h1>
   <form id="surge-form">
-    <input type="hidden" name="Date" id="dateField" />
-
     <label>Customer Name:
       <input type="text" name="Customer Name" placeholder="Customer Name" required />
     </label>
@@ -66,36 +71,34 @@ textarea {
     </label>
 
     <label>Time Zone:
-  <select name="Time Zone" required>
-    <option value="">-- Select Time Zone --</option>
-    <option value="America/New_York">Eastern Time (ET)</option>
-    <option value="America/Chicago">Central Time (CT)</option>
-    <option value="America/Denver">Mountain Time (MT)</option>
-    <option value="America/Los_Angeles">Pacific Time (PT)</option>
-    <option value="America/Anchorage">Alaska Time (AKT)</option>
-    <option value="Pacific/Honolulu">Hawaii Time (HAST)</option>
-    <option value="America/Phoenix">Arizona Time (no DST)</option>
-  </select>
-</label>
-
+      <select name="Time Zone" required>
+        <option value="">-- Select Time Zone --</option>
+        <option value="America/New_York">Eastern Time (ET)</option>
+        <option value="America/Chicago">Central Time (CT)</option>
+        <option value="America/Denver">Mountain Time (MT)</option>
+        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+        <option value="America/Anchorage">Alaska Time (AKT)</option>
+        <option value="Pacific/Honolulu">Hawaii Time (HAST)</option>
+        <option value="America/Phoenix">Arizona Time (no DST)</option>
+      </select>
+    </label>
 
     <label>Disposition:
-  <select name="Disposition" required>
-    <option value="">-- Select Disposition --</option>
-    <option value="Tech Call">Tech Call</option>
-    <option value="Schedule in Dealership">Schedule in Dealership</option>
-    <option value="Parts Only">Parts Only</option>
-    <option value="Mobile Only">Mobile Only</option>
-    <option value="Insurance/Collision">Insurance/Collision</option>
-    <option value="RV Transport">RV Transport</option>
-    <option value="Customer Update">Customer Update</option>
-    <option value="Sales">Sales</option>
-    <option value="Warranty Question">Warranty Question</option>
-    <option value="Membership">Membership</option>
-    <option value="Cancel Appt">Cancel Appt</option>
-  </select>
-</label>
-
+      <select name="Disposition" required>
+        <option value="">-- Select Disposition --</option>
+        <option value="Tech Call">Tech Call</option>
+        <option value="Schedule in Dealership">Schedule in Dealership</option>
+        <option value="Parts Only">Parts Only</option>
+        <option value="Mobile Only">Mobile Only</option>
+        <option value="Insurance/Collision">Insurance/Collision</option>
+        <option value="RV Transport">RV Transport</option>
+        <option value="Customer Update">Customer Update</option>
+        <option value="Sales">Sales</option>
+        <option value="Warranty Question">Warranty Question</option>
+        <option value="Membership">Membership</option>
+        <option value="Cancel Appt">Cancel Appt</option>
+      </select>
+    </label>
 
     <label>
       <input type="checkbox" name="Urgent" />
@@ -112,27 +115,37 @@ textarea {
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="supabaseClient.js"></script>
   <script>
-    // Auto-fill date and time fields
-    const dateField = document.getElementById('dateField');
-    const now = new Date();
-    dateField.value = now.toISOString().split('T')[0]; // yyyy-mm-dd
-    // Form submit logic
+    // Return YYYY-MM-DD in Mountain Daylight Time (UTC-6)
+    function getCurrentDateInMDT() {
+      const now = new Date();
+      const mdtOffsetMinutes = -6 * 60; // MDT is UTC-6
+      const localOffsetMinutes = now.getTimezoneOffset();
+      const mdtDate = new Date(now.getTime() + (mdtOffsetMinutes - localOffsetMinutes) * 60000);
+      return mdtDate.toISOString().split('T')[0];
+    }
+
     const form = document.getElementById('surge-form');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const data = Object.fromEntries(new FormData(form));
-      data.Urgent = form['Urgent'].checked;
+data.Urgent = form['Urgent'].checked;
+
+// Replace the existing Date field with a full ISO timestamp in MDT
+const now = new Date();
+const mdtOffsetMinutes = -6 * 60;
+const localOffsetMinutes = now.getTimezoneOffset();
+const mdtDate = new Date(now.getTime() + (mdtOffsetMinutes - localOffsetMinutes) * 60000);
+data.Date = mdtDate.toISOString(); // full timestamp in ISO format
 
       const { error } = await supabase.from('intake_surge_table').insert([data]);
       if (error) {
         alert('Error: ' + error.message);
       } else {
+        alert('Success!');
         form.reset();
-
-        // Reapply default values
-        const now = new Date();
-        dateField.value = now.toISOString().split('T')[0];      }
+        dateField.value = getCurrentDateInMDT(); // Reset with correct MDT date
+      }
     });
   </script>
 </body>

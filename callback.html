@@ -99,10 +99,12 @@
     </label>
 
     <select id="sort-order">
-      <option value="">-- Sort --</option>
-      <option value="urgent">Urgent First</option>
-      <option value="recent">Most Recent First</option>
-    </select>
+  <option value="">-- Sort --</option>
+  <option value="urgent">Urgent First</option>
+  <option value="recent">Most Recent First</option>
+  <option value="oldest">Oldest First</option>
+</select>
+
   </div>
 
   <table id="data-table">
@@ -190,10 +192,13 @@
       }
 
       if (sortOrder === "urgent") {
-        data.sort((a, b) => (b.Urgent === true) - (a.Urgent === true));
-      } else if (sortOrder === "recent") {
-        data.sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
-      }
+  data.sort((a, b) => (b.Urgent === true) - (a.Urgent === true));
+} else if (sortOrder === "recent") {
+  data.sort((a, b) => new Date(b.Date || 0) - new Date(a.Date || 0));
+} else if (sortOrder === "oldest") {
+  data.sort((a, b) => new Date(a.Date || 0) - new Date(b.Date || 0));
+}
+
 
       tableBody.innerHTML = "";
 
