@@ -241,12 +241,24 @@
       currentNameDisplay.textContent = "";
     });
 
-    function formatDateTime(timestamp) {
-      if (!timestamp) return "";
-      const date = new Date(timestamp);
-      const offset = date.getTimezoneOffset();
-      return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
-    }
+	function formatCreatedAt(raw) {
+	  if (!raw) return "";
+
+	  // Replace the space with 'T' and remove the timezone info so JS treats it as local
+	  const noTZ = raw.replace(" ", "T").split("+")[0]; // e.g., "2025-06-04T05:46:07.882841"
+	  const date = new Date(noTZ); // Interpreted as local time (MDT if user's browser is in MDT)
+
+	  return isNaN(date) ? "Invalid Date" : date.toLocaleString(); // displays as-is
+	}
+
+
+
+	function formatDateTime(timestamp) {
+	  if (!timestamp) return "";
+	  const date = new Date(timestamp);
+	  return isNaN(date) ? "" : date.toISOString().slice(0, 16); // Returns in "YYYY-MM-DDTHH:mm"
+	}
+
 
     async function loadData() {
       if (cachedData.length === 0) {
@@ -279,7 +291,7 @@
 
 		data.forEach(row => {
 		  const phone = row["Phone Number"];
-		  const date = row.Date ? new Date(row.Date).toISOString().split('T')[0] : null; // "YYYY-MM-DD"
+		  const date = row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null;
 		  if (phone && date) {
 			const key = `${phone}|${date}`;
 			phoneDateMap[key] = (phoneDateMap[key] || 0) + 1;
@@ -299,10 +311,11 @@
 		  if (sortOrder === "urgent") {
 			return (b.Urgent === true) - (a.Urgent === true);
 		  } else if (sortOrder === "recent") {
-			return new Date(b.Date || 0) - new Date(a.Date || 0);
+		  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
 		  } else if (sortOrder === "oldest") {
-			return new Date(a.Date || 0) - new Date(b.Date || 0);
-		  }
+		  return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+}
+
 
 		  return 0; // No sort
 		});
@@ -337,8 +350,8 @@
 		  const tr = document.createElement("tr");
 		  tr.dataset.id = row.id;
 		  const isGrabbed = !!row["Grabbed By"];
-		  const date = row.Date ? new Date(row.Date).toISOString().split('T')[0] : null;
-		  const isRepeatCaller = phoneDateMap[`${row["Phone Number"]}|${date}`] > 1;
+		  const createdDate = row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null;
+		  const isRepeatCaller = phoneDateMap[`${row["Phone Number"]}|${createdDate}`] > 1;
 
 		  if (row.Resolved) {
 			tr.classList.add("resolved-row");
@@ -349,7 +362,7 @@
 			<td class="non-editable ${isRepeatCaller ? 'repeat-caller' : ''}">
 			  ${row["Phone Number"] || ""}
 			</td>
-			<td class="non-editable">${row.Date ? new Date(row.Date).toLocaleString() : ""}</td>
+			<td class="non-editable">${formatCreatedAt(row.created_at)}</td>
 			<td class="non-editable">${row["Time Zone"] || ""}</td>
 			<td class="non-editable">${row["Disposition"] || ""}</td>
 			<td class="non-editable ${row.Urgent ? 'urgent' : ''}">${row.Urgent ? "Yes" : "No"}</td>
